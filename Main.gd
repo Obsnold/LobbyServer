@@ -3,8 +3,19 @@ extends Node2D
 # Message Types
 enum SUB{CREATE,DELETE,JOIN,LEAVE,LIST}
 
+# Error Codes
+enum ERROR{NO_ERROR,NO_SUCH_GAME_ID,CANNOT_JOIN_GAME,INVALID_PASSWORD}
+
 func _ready():
 	Server.connect("data_lobby", self, "_on_data")
+	Server.connect("user_disconnected",self, "_on_disconnect")
+
+func _on_disconnect(id):
+	print("_on_disconnect " + str(id))
+	for game in get_children():
+		if game.player_list.has(id):
+			game.leave_game(id)
+			break
 
 func _on_data(id:int, data:Dictionary):
 	Debug.log("Lobby", "_on_data")
@@ -71,8 +82,14 @@ func _join_game(user_id,user_name,password,game_id):
 	if game != null:
 		if game.check_password(password):
 			data.player_list = game.player_list
-			game.join_game(user_id,user_name)
-			data.error = 0
+			if game.join_game(user_id,user_name) == true:
+				data.error = ERROR.NO_ERROR
+			else:
+				data.error = ERROR.CANNOT_JOIN_GAME
+		else:
+			data.error = ERROR.INVALID_PASSWORD
+	else:
+		data.error = ERROR.NO_SUCH_GAME_ID
 	Server.send(user_id,data)
 
 func _leave_game(user_id,game_id):
@@ -85,7 +102,7 @@ func _leave_game(user_id,game_id):
 	var game = get_node_or_null(str(game_id))
 	if game != null:
 		#if game.check_password(password):
-		game.leave(user_id)
+		game.leave_game(user_id)
 		data.error = 0
 	Server.send(user_id,data)
 

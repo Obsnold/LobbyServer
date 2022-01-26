@@ -7,23 +7,33 @@ func _ready():
 	var err = Server.connect("data_game", self, "_on_data")
 	Debug.log("WFG " + name, "connect " + str(err))
 
-func join_game(id: int, player_name: String):
-	.join_game(id,player_name)
-	player_list[id].type = 0
-	player_list[id].ghost = false
-	player_list[id].general = false
-	Debug.log("WFG " + name,  player_name + " joined game " + name)
+func join_game(id: int, player_name: String) -> bool:
+	var result: bool = .join_game(id,player_name)
+	if result == true:
+		player_list[id].type = 0
+		player_list[id].ghost = false
+		player_list[id].general = false
+		Debug.log("WFG " + name,  player_name + " joined game " + name)
+	else:
+		result = false
+		Debug.log("WFG " + name,  player_name + " failed to join game " + name)
+	return result
 
 
 func leave_game(id):
 	Debug.log("WFG " + name, "send_player_list")
-	if player_list.size() != no_players:
-		.leave_game(id)
-		send_player_list()
-	else:
+	if player_list.size() == no_players || str(id) == name:
 		# the game has already started so end game
+		.leave_game(id)
 		end_game()
 		return false
+	else:
+		.leave_game(id)
+		if player_list.size() == 0:
+			end_game()
+			return false
+		send_player_list()
+		return true
 
 func start_game():
 	Debug.log("WFG " + name, "PLAYER_LIST")
